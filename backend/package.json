@@ -1,0 +1,28 @@
+{
+  "name": "backend-mern-task-manager",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "NodeJS",
+    "Express",
+    "MongoDB",
+    "Mongoose",
+    "Mailtrap",
+    "Jwt"
+  ],
+  "license": "ISC",
+  "author": "thrillu4",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon ./src/index.js",
+    "start": "node ./src/index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "prettier": "^3.7.4"
+  }
+}
