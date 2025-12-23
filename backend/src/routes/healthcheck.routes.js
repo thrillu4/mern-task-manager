@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { healthCheck } from "../controllers/healthcheck.controller.js"
+import { healthCheck } from "../controllers/healthcheck.controllers.js"
 
-export const healthCheckRoute = Router()
+export const healthCheckRoutes = Router()
 
-healthCheckRoute.get("/", healthCheck)
+healthCheckRoutes.get("/", healthCheck)

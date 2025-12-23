@@ -1,6 +1,7 @@
 import cors from "cors"
 import express from "express"
-import { healthCheckRoute } from "../routes/healthcheck.routes.js"
+import { healthCheckRoutes } from "../routes/healthcheck.routes.js"
+import { authRoutes } from "../routes/auth.routes.js"
 const app = express()
 
 app.use(express.json({ limit: "16kb" }))
@@ -16,6 +17,7 @@ app.use(
 )
 
 // routes
-app.use("/api/v1/healthcheck", healthCheckRoute)
+app.use("/api/v1/healthcheck", healthCheckRoutes)
+app.use("/api/v1/auth", authRoutes)
 
 export default app
