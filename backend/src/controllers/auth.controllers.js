@@ -106,3 +106,13 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
     }),
   )
 })
+
+export const uploadImage = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw new ApiError(400, { message: "No file uploaded!" })
+  }
+
+  const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
+
+  res.status(200).json(new ApiResponse(200, { imageUrl: imageUrl }))
+})
