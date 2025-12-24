@@ -70,3 +70,39 @@ export const loginUser = asyncHandler(async (req, res) => {
     }),
   )
 })
+
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password")
+
+  if (!user) {
+    throw new ApiError(404, "User not found")
+  }
+
+  res.status(200).json(new ApiResponse(200, user))
+})
+
+export const updateUserProfile = asyncHandler(async (req, res) => {
+  const { email, name, password } = req.body
+
+  const user = await User.findById(req.user._id)
+
+  if (!user) {
+    throw new ApiError(404, "User not found")
+  }
+
+  user.name = name || user.name
+  user.email = email || user.email
+  user.password = password || user.password
+
+  const updatedUser = await user.save()
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      token: generateToken(updatedUser._id),
+    }),
+  )
+})
