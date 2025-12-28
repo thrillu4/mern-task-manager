@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken"
 import { User } from "../models/user.models.js"
 import ApiError from "../utils/ApiError.js"
+import ApiResponse from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/AsyncHandler.js"
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
@@ -22,5 +23,15 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     }
   } else {
     throw new ApiError(401, "Unauthorized request")
+  }
+})
+
+export const adminOnly = asyncHandler(async (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next()
+  } else {
+    res
+      .status(403)
+      .json(new ApiResponse(403, { message: "Access denied, admin only" }))
   }
 })
