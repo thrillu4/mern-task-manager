@@ -13,11 +13,14 @@ import { styled } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import * as React from 'react'
+import { useNavigate } from 'react-router'
 import { SitemarkIcon } from '../../components/Auth/CustomIcons'
 import ForgotPassword from '../../components/Auth/ForgotPassword'
 import AppTheme from '../../components/SharedTheme/AppTheme'
 import ColorModeSelect from '../../components/SharedTheme/ColorModeSelect'
 import { ROUTES } from '../../constants/routes'
+import { API_PATH } from '../../utils/apiPaths'
+import axiosInstance from '../../utils/axiosInstance'
 
 const Card = styled(MuiCard)(({ theme }) => ({
 	display: 'flex',
@@ -68,20 +71,37 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
 	const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('')
 	const [open, setOpen] = React.useState(false)
 
+	const navigate = useNavigate()
+
 	const handleClose = () => {
 		setOpen(false)
 	}
 
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		if (emailError || passwordError) {
-			event.preventDefault()
-			return
-		}
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault()
+		if (!validateInputs) return
+
 		const data = new FormData(event.currentTarget)
-		console.log({
-			email: data.get('email'),
-			password: data.get('password'),
-		})
+		const email = data.get('email') as string
+		const password = data.get('password') as string
+		try {
+			const response = await axiosInstance.post(API_PATH.AUTH.LOGIN, {
+				email,
+				password,
+			})
+
+			const { token, role } = response.data.data
+			if (token) {
+				localStorage.setItem('token', token)
+				if (role === 'admin') {
+					navigate(ROUTES.ADMIN_DASHBOARD)
+				} else {
+					navigate(ROUTES.USER_DASHBOARD)
+				}
+			}
+		} catch (error) {
+			console.log(error)
+		}
 	}
 
 	const validateInputs = () => {
