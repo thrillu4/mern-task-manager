@@ -7,18 +7,18 @@ import CssBaseline from '@mui/material/CssBaseline'
 import FormControl from '@mui/material/FormControl'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import FormLabel from '@mui/material/FormLabel'
-import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import { styled } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import * as React from 'react'
-import { useNavigate } from 'react-router'
+import axios from 'axios'
+import { useContext, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { SitemarkIcon } from '../../components/Auth/CustomIcons'
-import ForgotPassword from '../../components/Auth/ForgotPassword'
 import AppTheme from '../../components/SharedTheme/AppTheme'
 import ColorModeSelect from '../../components/SharedTheme/ColorModeSelect'
 import { ROUTES } from '../../constants/routes'
+import { UserContext } from '../../context/context'
 import { API_PATH } from '../../utils/apiPaths'
 import axiosInstance from '../../utils/axiosInstance'
 
@@ -65,34 +65,35 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 }))
 
 export default function SignIn(props: { disableCustomTheme?: boolean }) {
-	const [emailError, setEmailError] = React.useState(false)
-	const [emailErrorMessage, setEmailErrorMessage] = React.useState('')
-	const [passwordError, setPasswordError] = React.useState(false)
-	const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('')
-	const [open, setOpen] = React.useState(false)
+	const [emailError, setEmailError] = useState(false)
+	const [emailErrorMessage, setEmailErrorMessage] = useState('')
+	const [passwordError, setPasswordError] = useState(false)
+	const [passwordErrorMessage, setPasswordErrorMessage] = useState('')
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
 
+	const { updateUser } = useContext(UserContext)
 	const navigate = useNavigate()
-
-	const handleClose = () => {
-		setOpen(false)
-	}
 
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
-		if (!validateInputs) return
+		if (!validateInputs()) {
+			return
+		}
 
 		const data = new FormData(event.currentTarget)
 		const email = data.get('email') as string
 		const password = data.get('password') as string
 		try {
+			setLoading(true)
 			const response = await axiosInstance.post(API_PATH.AUTH.LOGIN, {
 				email,
 				password,
 			})
-
 			const { token, role } = response.data.data
 			if (token) {
 				localStorage.setItem('token', token)
+				updateUser(response.data.data)
 				if (role === 'admin') {
 					navigate(ROUTES.ADMIN_DASHBOARD)
 				} else {
@@ -100,7 +101,13 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
 				}
 			}
 		} catch (error) {
-			console.log(error)
+			if (axios.isAxiosError(error)) {
+				setError(error.message)
+			} else {
+				setError('Something went wrong, try again later.')
+			}
+		} finally {
+			setLoading(false)
 		}
 	}
 
@@ -197,14 +204,14 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
 							control={<Checkbox value='remember' color='primary' />}
 							label='Remember me'
 						/>
-						<ForgotPassword open={open} handleClose={handleClose} />
+						{error && <Box sx={{ color: 'red' }}>{error}</Box>}
 						<Button
 							type='submit'
 							fullWidth
 							variant='contained'
 							onClick={validateInputs}
 						>
-							Sign in
+							{loading ? 'Signing in...' : 'Sign in'}
 						</Button>
 					</Box>
 					<Divider>
@@ -213,13 +220,7 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
 					<Box sx={{ display: 'flex', flexDirection: 'column' }}>
 						<Typography sx={{ textAlign: 'center' }}>
 							Don&apos;t have an account?{' '}
-							<Link
-								href={ROUTES.SIGN_UP}
-								variant='body2'
-								sx={{ alignSelf: 'center' }}
-							>
-								Sign up
-							</Link>
+							<Link to={ROUTES.SIGN_UP}>Sign up</Link>
 						</Typography>
 					</Box>
 				</Card>

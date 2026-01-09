@@ -5,17 +5,22 @@ import CssBaseline from '@mui/material/CssBaseline'
 import Divider from '@mui/material/Divider'
 import FormControl from '@mui/material/FormControl'
 import FormLabel from '@mui/material/FormLabel'
-import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import { styled } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import * as React from 'react'
+import axios from 'axios'
+import { useContext, useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { SitemarkIcon } from '../../components/Auth/CustomIcons'
 import { ProfilePhotoSelector } from '../../components/Inputs/ProfilePhotoSelector'
 import AppTheme from '../../components/SharedTheme/AppTheme'
 import ColorModeSelect from '../../components/SharedTheme/ColorModeSelect'
 import { ROUTES } from '../../constants/routes'
+import { UserContext } from '../../context/context'
+import { API_PATH } from '../../utils/apiPaths'
+import axiosInstance from '../../utils/axiosInstance'
+import { uploadImage } from '../../utils/uploadImage'
 
 const Card = styled(MuiCard)(({ theme }) => ({
 	display: 'flex',
@@ -60,13 +65,17 @@ const SignUpContainer = styled(Stack)(({ theme }) => ({
 }))
 
 export default function SignUp(props: { disableCustomTheme?: boolean }) {
-	const [emailError, setEmailError] = React.useState(false)
-	const [emailErrorMessage, setEmailErrorMessage] = React.useState('')
-	const [passwordError, setPasswordError] = React.useState(false)
-	const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('')
-	const [usernameError, setUsernameError] = React.useState(false)
-	const [usernameErrorMessage, setUsernameErrorMessage] = React.useState('')
-	const [avatar, setAvatar] = React.useState<File | null>(null)
+	const [emailError, setEmailError] = useState(false)
+	const [emailErrorMessage, setEmailErrorMessage] = useState('')
+	const [passwordError, setPasswordError] = useState(false)
+	const [passwordErrorMessage, setPasswordErrorMessage] = useState('')
+	const [usernameError, setUsernameError] = useState(false)
+	const [usernameErrorMessage, setUsernameErrorMessage] = useState('')
+	const [avatar, setAvatar] = useState<File | null>(null)
+	const [error, setError] = useState<string | null>(null)
+	const [loading, setLoading] = useState(false)
+	const { updateUser } = useContext(UserContext)
+	const navigate = useNavigate()
 
 	const validateInputs = () => {
 		const email = document.getElementById('email') as HTMLInputElement
@@ -105,24 +114,47 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
 		return isValid
 	}
 
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
 		if (!validateInputs()) return
 
 		const formData = new FormData(event.currentTarget)
 
-		if (avatar) {
-			formData.append('avatar', avatar)
-		}
+		let profileImageUrl = ''
 
-		console.log({
-			username: formData.get('username'),
-			email: formData.get('email'),
-			password: formData.get('password'),
-			admin: formData.get('admin'),
-			avatar: formData.get('avatar'),
-		})
+		try {
+			setLoading(true)
+			if (avatar) {
+				const imgUploadRes = await uploadImage(avatar)
+				profileImageUrl = imgUploadRes.imageUrl || ''
+			}
+			const response = await axiosInstance.post(API_PATH.AUTH.REGISTER, {
+				name: formData.get('username'),
+				email: formData.get('email'),
+				password: formData.get('password'),
+				adminInviteToken: formData.get('admin'),
+				profileImageUrl,
+			})
+			const { token, role } = response.data.data
+			if (token) {
+				localStorage.setItem('token', token)
+				updateUser(response.data.data)
+				if (role === 'admin') {
+					navigate(ROUTES.ADMIN_DASHBOARD)
+				} else {
+					navigate(ROUTES.USER_DASHBOARD)
+				}
+			}
+		} catch (error) {
+			if (axios.isAxiosError(error)) {
+				setError(error.message)
+			} else {
+				setError('Something went wrong, try again later.')
+			}
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	return (
@@ -200,16 +232,17 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
 								name='admin'
 								fullWidth
 								id='admin'
-								placeholder='6 Digit Code'
+								placeholder='6 Digit Code (optional)'
 							/>
 						</FormControl>
+						{error && <Box sx={{ color: 'red' }}>{error}</Box>}
 						<Button
 							type='submit'
 							fullWidth
 							variant='contained'
 							onClick={validateInputs}
 						>
-							Sign up
+							{loading ? 'Signing up...' : 'Sign up'}
 						</Button>
 					</Box>
 					<Divider>
@@ -217,14 +250,7 @@ export default function SignUp(props: { disableCustomTheme?: boolean }) {
 					</Divider>
 					<Box sx={{ display: 'flex', flexDirection: 'column' }}>
 						<Typography sx={{ textAlign: 'center' }}>
-							Already have an account?{' '}
-							<Link
-								href={ROUTES.SIGN_IN}
-								variant='body2'
-								sx={{ alignSelf: 'center' }}
-							>
-								Sign in
-							</Link>
+							Already have an account? <Link to={ROUTES.SIGN_IN}>Sign in</Link>
 						</Typography>
 					</Box>
 				</Card>

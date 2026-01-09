@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { ROUTES } from '../constants/routes'
 import { BASE_URL } from './apiPaths'
 
 const axiosInstance = axios.create({
@@ -29,15 +28,31 @@ axiosInstance.interceptors.response.use(
 		return response
 	},
 	(error) => {
+		let message = 'Something went wrong'
+
 		if (error.response) {
-			if (error.response.status == -401) {
-				window.location.href = ROUTES.SIGN_IN
-			} else if (error.response.status === 500) {
-				console.error('Server error. Please try again later')
+			const status = error.response.status
+			const serverMessage = error.response.data?.message
+
+			if (status === 401) {
+				message = 'Invalid email or password'
+			} else if (status === 403) {
+				message = 'You do not have permission to perform this action.'
+			} else if (status === 404) {
+				message = 'Requested resource not found.'
+			} else if (status >= 500) {
+				message = 'Server error. Please try again later.'
+			} else {
+				message = serverMessage || 'Request failed'
 			}
 		} else if (error.code === 'ECONNABORTED') {
-			console.error('Request timeout. Please try again')
+			message = 'Request timeout. Please try again.'
+		} else if (error.message === 'Network Error') {
+			message = 'Network error. Check your internet connection.'
 		}
+
+		error.message = message
+
 		return Promise.reject(error)
 	}
 )
